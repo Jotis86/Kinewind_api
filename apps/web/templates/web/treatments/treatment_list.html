@@ -1,0 +1,103 @@
+{% extends "web/base.html" %}
+{% load web_extras %}
+
+{% block title %}Tratamientos · Kinewind{% endblock %}
+{% block page_title %}Tratamientos{% endblock %}
+{% block subtitle %}Planes de tratamiento y sesiones{% endblock %}
+{% block topbar_actions %}
+  <a href="{% url 'web:treatment-create' %}" class="btn btn-kw btn-sm">
+    <i class="bi bi-clipboard2-plus me-1"></i> Nuevo tratamiento
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="card kw-card mb-3">
+  <div class="kw-card-body py-3">
+    <form method="get" class="row g-2 align-items-end" data-auto-filter>
+      <div class="col-md-4">
+        <label class="form-label mb-1">Buscar</label>
+        <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Diagnóstico o paciente" autofocus>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label mb-1">Paciente</label>
+        <select name="patient" class="form-select">
+          <option value="">Todos</option>
+          {% for p in patients %}
+            <option value="{{ p.pk }}" {% if patient == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.full_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label mb-1">Estado</label>
+        <select name="status" class="form-select">
+          <option value="">Todos</option>
+          {% for value, label in treatments.model.Status.choices %}
+            <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-kw-outline flex-grow-1">Filtrar</button>
+        <a href="{% url 'web:treatment-list' %}" class="btn btn-outline-secondary flex-grow-1">Limpiar</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card kw-card">
+  <div class="kw-table-wrap">
+    <table class="table kw-table mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>Paciente</th>
+          <th>Diagnóstico</th>
+          <th>Progreso</th>
+          <th>Estado</th>
+          <th class="text-end">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tratamiento in treatments %}
+          <tr>
+            <td>
+              <a class="kw-cell-title" href="{% url 'web:patient-detail' tratamiento.patient.pk %}">{{ tratamiento.patient.full_name }}</a>
+              <div class="kw-cell-sub">{{ tratamiento.patient.dni }}</div>
+            </td>
+            <td><a class="kw-cell-title" href="{% url 'web:treatment-detail' tratamiento.pk %}">{{ tratamiento.diagnosis }}</a></td>
+            <td style="min-width:160px">
+              <div class="d-flex align-items-center gap-2">
+                <div class="progress progress-kw flex-grow-1" style="max-width:110px">
+                  <div class="progress-bar" style="width: {{ tratamiento.sessions_done_count|percent:tratamiento.total_sessions }}%"></div>
+                </div>
+                <span class="small text-muted">{{ tratamiento.sessions_done_count }}/{{ tratamiento.total_sessions }}</span>
+              </div>
+            </td>
+            <td><span class="badge badge-soft badge-soft-{{ tratamiento.status|status_class }}">{{ tratamiento.get_status_display }}</span></td>
+            <td class="text-end">
+              <div class="d-inline-flex gap-1">
+                <a href="{% url 'web:treatment-detail' tratamiento.pk %}" class="btn btn-icon btn-icon-soft"
+                   title="Ver" data-bs-toggle="tooltip"><i class="bi bi-eye"></i></a>
+                <a href="{% url 'web:treatment-update' tratamiento.pk %}" class="btn btn-icon btn-icon-soft"
+                   title="Editar" data-bs-toggle="tooltip"><i class="bi bi-pencil"></i></a>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5">
+              <div class="kw-empty">
+                <div class="kw-empty-icon"><i class="bi bi-clipboard2-pulse"></i></div>
+                <p class="mb-1">No se encontraron tratamientos.</p>
+                <a href="{% url 'web:treatment-create' %}" class="btn btn-kw btn-sm mt-2">Crear tratamiento</a>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if is_paginated %}
+    <div class="kw-card-body pt-3">{% include "web/_pagination.html" %}</div>
+  {% endif %}
+</div>
+{% endblock %}

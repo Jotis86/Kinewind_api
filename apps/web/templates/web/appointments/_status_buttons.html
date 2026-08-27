@@ -1,0 +1,39 @@
+{% load web_extras %}
+<div class="d-inline-flex gap-1">
+  {% if cita.status == "programada" %}
+    <form method="post" action="{% url 'web:appointment-status' cita.pk 'confirmar' %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-icon btn-icon-soft" title="Confirmar" data-bs-toggle="tooltip">
+        <i class="bi bi-check-lg"></i>
+      </button>
+    </form>
+    <form method="post" action="{% url 'web:appointment-status' cita.pk 'completar' %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-icon btn-icon-soft-blue" title="Marcar completada" data-bs-toggle="tooltip">
+        <i class="bi bi-check2-circle"></i>
+      </button>
+    </form>
+  {% elif cita.status == "confirmada" %}
+    <form method="post" action="{% url 'web:appointment-status' cita.pk 'completar' %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-icon btn-icon-soft-blue" title="Marcar completada" data-bs-toggle="tooltip">
+        <i class="bi bi-check2-circle"></i>
+      </button>
+    </form>
+  {% elif cita.status == "cancelada" %}
+    <form method="post" action="{% url 'web:appointment-status' cita.pk 'programar' %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-icon btn-icon-soft" title="Reprogramar" data-bs-toggle="tooltip">
+        <i class="bi bi-arrow-counterclockwise"></i>
+      </button>
+    </form>
+  {% endif %}
+  {% if cita.status != "cancelada" %}
+    <form method="post" action="{% url 'web:appointment-status' cita.pk 'cancelar' %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-icon btn-icon-soft-warning" title="Cancelar" data-bs-toggle="tooltip">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </form>
+  {% endif %}
+</div>

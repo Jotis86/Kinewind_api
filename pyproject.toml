@@ -1,0 +1,27 @@
+[project]
+name = "kinewind-api"
+version = "0.1.0"
+description = "API REST para gestión de una clínica de fisioterapia"
+readme = "README.md"
+authors = [
+    { name = "Jotis86", email = "juaneloyduranbon@hotmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "django>=6.1",
+    "django-filter>=26.1",
+    "djangorestframework>=3.18.0",
+    "djangorestframework-simplejwt>=5.5.1",
+    "drf-spectacular>=0.30.0",
+    "gunicorn>=26.0.0",
+    "psycopg[binary]>=3.3.4",
+    "reportlab>=5.0.0",
+    "whitenoise>=6.12.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv]
+package = false

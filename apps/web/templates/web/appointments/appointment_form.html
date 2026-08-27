@@ -1,0 +1,150 @@
+{% extends "web/base.html" %}
+
+{% block title %}{% if object %}Editar{% else %}Nueva{% endif %} cita · Kinewind{% endblock %}
+{% block page_title %}{% if object %}Editar cita{% else %}Programar cita{% endif %}{% endblock %}
+{% block subtitle %}{% if object %}{{ object.patient.full_name }} · {{ object.start|date:"d/m/Y H:i" }}{% else %}Reservar un turno para un paciente{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card kw-card kw-form-card mx-auto">
+  <div class="kw-card-body">
+    <form method="post" novalidate id="appointment-form" data-exclude="{% if object %}{{ object.pk }}{% endif %}">
+      {% csrf_token %}
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="mb-3">
+        <label for="{{ form.patient.id_for_label }}" class="form-label">
+          {{ form.patient.label }}{% if form.patient.field.required %} <span class="text-danger">*</span>{% endif %}
+        </label>
+        {{ form.patient }}
+        {% if form.patient.errors %}<div class="text-error mt-1">{{ form.patient.errors }}</div>{% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label for="{{ form.start_date.id_for_label }}" class="form-label">
+          {{ form.start_date.label }}{% if form.start_date.field.required %} <span class="text-danger">*</span>{% endif %}
+        </label>
+        {{ form.start_date }}
+        {% if form.start_date.errors %}<div class="text-error mt-1">{{ form.start_date.errors }}</div>{% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Hora <span class="text-danger">*</span></label>
+        <div class="slot-grid" id="slot-grid">
+          {% for slot in slot_times %}
+            <button type="button" class="slot-btn" data-time="{{ slot }}">{{ slot }}</button>
+          {% endfor %}
+        </div>
+        <div class="form-text">Elige un horario libre. Los marcados como ocupados no se pueden reservar.</div>
+        {{ form.start_time }}
+        {% if form.start_time.errors %}<div class="text-error mt-1">{{ form.start_time.errors }}</div>{% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Duración <span class="text-danger">*</span></label>
+        <div class="d-flex gap-2 flex-wrap" id="duration-chips">
+          {% for d in durations %}
+            <button type="button" class="btn btn-kw-outline duration-chip" data-min="{{ d }}">{{ d }} min</button>
+          {% endfor %}
+        </div>
+        {{ form.duration }}
+        {% if form.duration.errors %}<div class="text-error mt-1">{{ form.duration.errors }}</div>{% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label for="{{ form.status.id_for_label }}" class="form-label">{{ form.status.label }}</label>
+        {{ form.status }}
+        {% if form.status.errors %}<div class="text-error mt-1">{{ form.status.errors }}</div>{% endif %}
+      </div>
+
+      <div class="mb-3">
+        <label for="{{ form.notes.id_for_label }}" class="form-label">{{ form.notes.label }}</label>
+        {{ form.notes }}
+        {% if form.notes.errors %}<div class="text-error mt-1">{{ form.notes.errors }}</div>{% endif %}
+      </div>
+
+      <div class="alert alert-light border small py-2">
+        <i class="bi bi-info-circle me-1"></i>
+        No se permite solapar dos citas en el mismo horario.
+      </div>
+      <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-kw"><i class="bi bi-check-lg me-1"></i> Guardar</button>
+        <a href="{% url 'web:appointment-list' %}" class="btn btn-kw-outline">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    var form = document.getElementById("appointment-form");
+    if (!form) return;
+    var dateInput = form.querySelector('[name="start_date"]');
+    var timeInput = form.querySelector('[name="start_time"]');
+    var durationInput = form.querySelector('[name="duration"]');
+    var grid = document.getElementById("slot-grid");
+    var chips = form.querySelectorAll(".duration-chip");
+    var exclude = form.dataset.exclude || "";
+    var slotsUrl = "{% url 'web:appointment-slots' %}";
+
+    function applyDuration(dur) {
+      durationInput.value = dur;
+      chips.forEach(function (c) {
+        c.classList.toggle("active", c.dataset.min === String(dur));
+      });
+    }
+
+    function refreshSlots() {
+      if (!dateInput.value) return;
+      fetch(slotsUrl + "?date=" + dateInput.value + "&duration=" + (durationInput.value || 50) + "&exclude=" + exclude)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          grid.querySelectorAll(".slot-btn").forEach(function (btn) {
+            var occupied = data.slots.indexOf(btn.dataset.time) !== -1;
+            btn.disabled = occupied;
+            btn.classList.toggle("occupied", occupied);
+            if (occupied && btn.classList.contains("selected")) {
+              btn.classList.remove("selected");
+              timeInput.value = "";
+            }
+          });
+        });
+    }
+
+    grid.addEventListener("click", function (e) {
+      var btn = e.target.closest(".slot-btn");
+      if (!btn || btn.disabled) return;
+      grid.querySelectorAll(".slot-btn").forEach(function (b) { b.classList.remove("selected"); });
+      btn.classList.add("selected");
+      timeInput.value = btn.dataset.time;
+    });
+
+    chips.forEach(function (c) {
+      c.addEventListener("click", function () {
+        applyDuration(c.dataset.min);
+        refreshSlots();
+      });
+    });
+
+    dateInput.addEventListener("change", refreshSlots);
+
+    if (dateInput.value) {
+      refreshSlots();
+      var initialTime = timeInput.value;
+      if (initialTime) {
+        grid.querySelectorAll(".slot-btn").forEach(function (btn) {
+          if (btn.dataset.time === initialTime) {
+            btn.classList.add("selected");
+          }
+        });
+      }
+    }
+    if (durationInput.value) {
+      applyDuration(durationInput.value);
+    } else {
+      applyDuration(50);
+    }
+  });
+</script>
+{% endblock %}

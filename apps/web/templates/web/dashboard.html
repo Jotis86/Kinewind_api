@@ -1,0 +1,164 @@
+{% extends "web/base.html" %}
+{% load web_extras %}
+
+{% block title %}Kinewind · Dashboard{% endblock %}
+{% block page_title %}Kinewind{% endblock %}
+{% block subtitle %}{{ today|date:"l, d \d\e F \d\e Y" }}{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <a href="{% url 'web:patient-list' %}" class="text-decoration-none">
+      <div class="card kw-card kw-card-hover stat-card">
+        <div class="stat-top">
+          <span class="stat-icon stat-icon-teal"><i class="bi bi-people-fill"></i></span>
+          <div class="stat-value">{{ patients_active }}</div>
+        </div>
+        <div class="stat-label">Pacientes</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <a href="{% url 'web:treatment-list' %}" class="text-decoration-none">
+      <div class="card kw-card kw-card-hover stat-card">
+        <div class="stat-top">
+          <span class="stat-icon stat-icon-purple"><i class="bi bi-clipboard2-pulse-fill"></i></span>
+          <div class="stat-value">{{ treatments_active }}</div>
+        </div>
+        <div class="stat-label">Tratamientos</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <a href="{% url 'web:agenda' %}" class="text-decoration-none">
+      <div class="card kw-card kw-card-hover stat-card">
+        <div class="stat-top">
+          <span class="stat-icon stat-icon-blue"><i class="bi bi-calendar-check-fill"></i></span>
+          <div class="stat-value">{{ appointments_today }}</div>
+        </div>
+        <div class="stat-label">Citas de hoy</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-sm-6 col-xl-3">
+    <a href="{% url 'web:appointment-list' %}" class="text-decoration-none">
+      <div class="card kw-card kw-card-hover stat-card">
+        <div class="stat-top">
+          <span class="stat-icon stat-icon-amber"><i class="bi bi-check2-circle"></i></span>
+          <div class="stat-value">{{ appointments_confirmed }}</div>
+        </div>
+        <div class="stat-label">Total citas</div>
+      </div>
+    </a>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card kw-card h-100">
+      <div class="kw-card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-calendar-week me-2 text-teal"></i>Citas de hoy</span>
+        <a href="{% url 'web:agenda' %}" class="kw-link small">Ver agenda</a>
+      </div>
+      <div class="kw-table-wrap">
+        <table class="table kw-table mb-0">
+          <thead>
+            <tr><th>Hora</th><th>Paciente</th><th>Estado</th></tr>
+          </thead>
+          <tbody>
+            {% for cita in appointments %}
+              <tr>
+                <td class="fw-bold">{{ cita.start|date:"H:i" }}</td>
+                <td>
+                  <a class="kw-cell-title" href="{% url 'web:patient-detail' cita.patient.pk %}">
+                    {{ cita.patient.full_name }}
+                  </a>
+                </td>
+                <td><span class="badge badge-soft badge-soft-{{ cita.status|status_class }}">{{ cita.get_status_display }}</span></td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="3">
+                <div class="kw-empty">
+                  <div class="kw-empty-icon"><i class="bi bi-calendar-x"></i></div>
+                  <p class="mb-1">Sin citas para hoy.</p>
+                  <a href="{% url 'web:appointment-create' %}" class="btn btn-kw btn-sm mt-2">Programar cita</a>
+                </div>
+              </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card kw-card h-100">
+      <div class="kw-card-header"><i class="bi bi-hourglass-split me-2 text-teal"></i>Próximas citas</div>
+      <div class="kw-table-wrap">
+        <table class="table kw-table mb-0">
+          <tbody>
+            {% for cita in upcoming %}
+              <tr>
+                <td class="fw-bold">{{ cita.start|date:"d/m" }}</td>
+                <td>{{ cita.start|date:"H:i" }}</td>
+                <td><a class="kw-cell-title" href="{% url 'web:patient-detail' cita.patient.pk %}">{{ cita.patient.full_name }}</a></td>
+              </tr>
+            {% empty %}
+              <tr><td>
+                <div class="kw-empty">
+                  <div class="kw-empty-icon"><i class="bi bi-inbox"></i></div>
+                  <p class="mb-0">No hay próximas citas.</p>
+                </div>
+              </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mt-0">
+  <div class="col-lg-7">
+    <div class="card kw-card">
+      <div class="kw-card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-people me-2 text-teal"></i>Últimos pacientes</span>
+        <a href="{% url 'web:patient-list' %}" class="kw-link small">Ver todos</a>
+      </div>
+      <div class="kw-table-wrap">
+        <table class="table kw-table mb-0">
+          <thead><tr><th>Nombre</th><th>DNI</th></tr></thead>
+          <tbody>
+            {% for paciente in recent_patients %}
+              <tr>
+                <td><a class="kw-cell-title" href="{% url 'web:patient-detail' paciente.pk %}">{{ paciente.full_name }}</a></td>
+                <td class="kw-cell-sub">{{ paciente.dni }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="2">
+                <div class="kw-empty">
+                  <div class="kw-empty-icon"><i class="bi bi-person-plus"></i></div>
+                  <p class="mb-1">Todavía no hay pacientes.</p>
+                  <a href="{% url 'web:patient-create' %}" class="btn btn-kw btn-sm mt-2">Alta de paciente</a>
+                </div>
+              </td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card kw-card">
+      <div class="kw-card-header"><i class="bi bi-lightning-charge me-2 text-teal"></i>Accesos rápidos</div>
+      <div class="kw-card-body d-grid gap-2">
+        <a href="{% url 'web:appointment-create' %}" class="btn btn-kw"><i class="bi bi-calendar-plus me-2"></i>Programar cita</a>
+        <a href="{% url 'web:patient-create' %}" class="btn btn-kw-outline"><i class="bi bi-person-plus me-2"></i>Dar de alta un paciente</a>
+        <a href="{% url 'web:treatment-create' %}" class="btn btn-kw-outline"><i class="bi bi-clipboard2-plus me-2"></i>Crear tratamiento</a>
+        <a href="{% url 'web:db-dump' %}" class="btn btn-kw-outline"><i class="bi bi-download me-2"></i>Descargar copia de la BD</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends "web/base.html" %}
+{% load web_extras %}
+
+{% block title %}{{ patient.full_name }} · Kinewind{% endblock %}
+{% block page_title %}{{ patient.full_name }}{% endblock %}
+{% block subtitle %}Ficha del paciente · DNI {{ patient.dni }}{% endblock %}
+{% block topbar_actions %}
+  <a href="{% url 'web:patient-update' patient.pk %}" class="btn btn-kw-outline btn-sm">
+    <i class="bi bi-pencil me-1"></i> Editar
+  </a>
+  <a href="{% url 'web:appointment-create' %}?patient={{ patient.pk }}" class="btn btn-kw btn-sm">
+    <i class="bi bi-calendar-plus me-1"></i> Programar cita
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card kw-card mb-3">
+      <div class="kw-card-body text-center">
+        <span class="kw-avatar kw-avatar-teal" style="width:72px;height:72px;font-size:1.5rem">
+          {{ patient.first_name|slice:":1" }}{{ patient.last_name|slice:":1" }}
+        </span>
+        <h2 class="h5 fw-bold mt-3 mb-0">{{ patient.full_name }}</h2>
+        <div class="mt-2">
+          {% if patient.active %}
+            <span class="badge badge-soft badge-soft-success">Activo</span>
+          {% else %}
+            <span class="badge badge-soft badge-soft-secondary">De baja</span>
+          {% endif %}
+        </div>
+        <hr>
+        <dl class="text-start small mb-0">
+          <div class="d-flex justify-content-between py-1"><dt>DNI</dt><dd>{{ patient.dni }}</dd></div>
+          <div class="d-flex justify-content-between py-1"><dt>Trabajo</dt><dd>{{ patient.job|default:"—" }}</dd></div>
+          <div class="d-flex justify-content-between py-1"><dt>Teléfono</dt><dd>{{ patient.phone|default:"—" }}</dd></div>
+          <div class="d-flex justify-content-between py-1"><dt>Email</dt><dd>{{ patient.email|default:"—" }}</dd></div>
+        </dl>
+      </div>
+    </div>
+    {% if patient.active %}
+      <div class="card kw-card">
+        <div class="kw-card-body">
+          <a href="{% url 'web:patient-delete' patient.pk %}" class="btn btn-outline-danger w-100">
+            <i class="bi bi-person-dash me-1"></i> Dar de baja
+          </a>
+        </div>
+      </div>
+    {% else %}
+      <div class="card kw-card">
+        <div class="kw-card-body">
+          <form method="post" action="{% url 'web:patient-activate' patient.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-kw w-100">
+              <i class="bi bi-person-check me-1"></i> Reactivar paciente
+            </button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-8">
+    {% if patient.reason %}
+      <div class="card kw-card mb-3">
+        <div class="kw-card-header"><i class="bi bi-info-circle me-2 text-teal"></i>Motivo de la consulta</div>
+        <div class="kw-card-body">{{ patient.reason }}</div>
+      </div>
+    {% endif %}
+
+    {% if patient.history or patient.medications or patient.sport_habits is not None or patient.fatigue_level or patient.gluten_intolerance is not None or patient.gut_issues is not None %}
+      <div class="card kw-card mb-3">
+        <div class="kw-card-header"><i class="bi bi-clipboard2-pulse me-2 text-teal"></i>Valoración</div>
+        <div class="kw-card-body">
+          <dl class="row small mb-0">
+            {% if patient.history %}
+              <dt class="col-5">Antecedentes</dt>
+              <dd class="col-7">{{ patient.history }}</dd>
+            {% endif %}
+            {% if patient.medications %}
+              <dt class="col-5">Medicamentos</dt>
+              <dd class="col-7">{{ patient.medications }}</dd>
+            {% endif %}
+            <dt class="col-5">Hábitos deportivos</dt>
+            <dd class="col-7">{{ patient.sport_habits|yesno:"Sí,No,—" }}</dd>
+            <dt class="col-5">Nivel de cansancio</dt>
+            <dd class="col-7">{{ patient.get_fatigue_level_display|default:"—" }}</dd>
+            <dt class="col-5">Intolerancia a gluten</dt>
+            <dd class="col-7">{{ patient.gluten_intolerance|yesno:"Sí,No,—" }}</dd>
+            <dt class="col-5">Problemas intestinales</dt>
+            <dd class="col-7">{{ patient.gut_issues|yesno:"Sí,No,—" }}</dd>
+          </dl>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if patient.notes %}
+      <div class="card kw-card mb-3">
+        <div class="kw-card-header"><i class="bi bi-journal-text me-2 text-teal"></i>Observaciones</div>
+        <div class="kw-card-body">{{ patient.notes|linebreaks }}</div>
+      </div>
+    {% endif %}
+
+    <div class="card kw-card mb-3">
+      <div class="kw-card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-clipboard2-pulse me-2 text-teal"></i>Tratamientos</span>
+        <a href="{% url 'web:treatment-create' %}?patient={{ patient.pk }}" class="kw-link small">Nuevo tratamiento</a>
+      </div>
+      <div class="kw-table-wrap">
+        <table class="table kw-table mb-0 align-middle">
+          <thead><tr><th>Diagnóstico</th><th>Sesiones</th><th>Estado</th></tr></thead>
+          <tbody>
+            {% for tratamiento in treatments %}
+              <tr>
+                <td><a class="kw-cell-title" href="{% url 'web:treatment-detail' tratamiento.pk %}">{{ tratamiento.diagnosis }}</a></td>
+                <td class="kw-cell-sub">{{ tratamiento.sessions_done_count }}/{{ tratamiento.total_sessions }}</td>
+                <td><span class="badge badge-soft badge-soft-{{ tratamiento.status|status_class }}">{{ tratamiento.get_status_display }}</span></td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="3"><div class="kw-empty"><div class="kw-empty-icon"><i class="bi bi-clipboard2"></i></div><p class="mb-0">Sin tratamientos.</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card kw-card">
+      <div class="kw-card-header"><i class="bi bi-calendar-check me-2 text-teal"></i>Citas</div>
+      <div class="kw-table-wrap">
+        <table class="table kw-table mb-0 align-middle">
+          <thead><tr><th>Fecha</th><th>Hora</th><th>Estado</th></tr></thead>
+          <tbody>
+            {% for cita in appointments %}
+              <tr>
+                <td>{{ cita.start|date:"d/m/Y" }}</td>
+                <td class="fw-bold">{{ cita.start|date:"H:i" }}</td>
+                <td><span class="badge badge-soft badge-soft-{{ cita.status|status_class }}">{{ cita.get_status_display }}</span></td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="3"><div class="kw-empty"><div class="kw-empty-icon"><i class="bi bi-calendar-x"></i></div><p class="mb-0">Sin citas registradas.</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

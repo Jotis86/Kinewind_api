@@ -1,0 +1,80 @@
+{% extends "web/base.html" %}
+{% load web_extras %}
+
+{% block title %}Agenda · Kinewind{% endblock %}
+{% block page_title %}Agenda del día{% endblock %}
+{% block subtitle %}{{ day|date:"l, d \d\e F \d\e Y" }}{% endblock %}
+{% block topbar_actions %}
+  <a href="{% url 'web:appointment-create' %}" class="btn btn-kw btn-sm">
+    <i class="bi bi-calendar-plus me-1"></i> Nueva cita
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="card kw-card mb-3">
+  <div class="kw-card-body py-3">
+    <form method="get" class="row g-2 align-items-end" data-auto-filter>
+      <div class="col-md-4">
+        <label class="form-label mb-1">Fecha</label>
+        <input type="date" name="date" value="{{ day|date:'Y-m-d' }}" class="form-control">
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-kw-outline w-100">Ver día</button>
+      </div>
+      <div class="col-md-auto d-flex gap-2 align-items-end">
+        <a href="{% url 'web:agenda' %}" class="btn btn-kw w-100"><i class="bi bi-calendar-today me-1"></i> Hoy</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card kw-card">
+  <div class="kw-card-header d-flex align-items-center justify-content-between">
+    <span><i class="bi bi-calendar-week me-2 text-teal"></i>{{ appointments|length }} cita{{ appointments|length|pluralize }}</span>
+  </div>
+  <div class="kw-table-wrap">
+    <table class="table kw-table mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>Hora</th>
+          <th>Paciente</th>
+          <th>Notas</th>
+          <th>Estado</th>
+          <th class="text-end">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cita in appointments %}
+          <tr>
+            <td class="fw-bold">{{ cita.start|date:"H:i" }}</td>
+            <td>
+              <a class="kw-cell-title" href="{% url 'web:patient-detail' cita.patient.pk %}">{{ cita.patient.full_name }}</a>
+              <div class="kw-cell-sub">{{ cita.duration }} min</div>
+            </td>
+            <td class="kw-cell-sub">{{ cita.notes|default:"—" }}</td>
+            <td><span class="badge badge-soft badge-soft-{{ cita.status|status_class }}">{{ cita.get_status_display }}</span></td>
+            <td class="text-end">
+              <div class="d-inline-flex gap-1">
+                {% include "web/appointments/_status_buttons.html" %}
+                <a href="{% url 'web:appointment-update' cita.pk %}" class="btn btn-icon btn-icon-soft" title="Editar" data-bs-toggle="tooltip">
+                  <i class="bi bi-pencil"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5">
+              <div class="kw-empty">
+                <div class="kw-empty-icon"><i class="bi bi-calendar-x"></i></div>
+                <p class="mb-1">No hay citas para este día.</p>
+                <a href="{% url 'web:appointment-create' %}" class="btn btn-kw btn-sm mt-2">Programar cita</a>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

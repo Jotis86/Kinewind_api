@@ -1,0 +1,28 @@
+{% extends "web/base.html" %}
+
+{% block title %}Baja de paciente · Kinewind{% endblock %}
+{% block page_title %}Dar de baja{% endblock %}
+{% block subtitle %}{{ patient.full_name }}{% endblock %}
+
+{% block content %}
+<div class="card kw-card kw-form-card mx-auto">
+  <div class="kw-card-body text-center py-4">
+    <span class="stat-icon stat-icon-amber mx-auto mb-3" style="width:64px;height:64px;font-size:1.8rem">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+    </span>
+    <h2 class="h5 fw-bold mb-2">¿Dar de baja a {{ patient.full_name }}?</h2>
+    <p class="text-secondary mb-4">
+      El paciente quedará marcado como <strong>inactivo</strong> y dejará de aparecer en el panel. Los tratamientos y citas históricas se conservan.
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="d-flex justify-content-center gap-2">
+        <button type="submit" class="btn btn-danger px-4">
+          <i class="bi bi-person-dash me-1"></i> Confirmar baja
+        </button>
+        <a href="{% url 'web:patient-detail' patient.pk %}" class="btn btn-kw-outline px-4">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

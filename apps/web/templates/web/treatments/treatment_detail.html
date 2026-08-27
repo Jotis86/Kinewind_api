@@ -1,0 +1,120 @@
+{% extends "web/base.html" %}
+{% load web_extras %}
+
+{% block title %}{{ treatment.diagnosis }} · Kinewind{% endblock %}
+{% block page_title %}{{ treatment.diagnosis }}{% endblock %}
+{% block subtitle %}Tratamiento de {{ treatment.patient.full_name }}{% endblock %}
+{% block topbar_actions %}
+  <a href="{% url 'web:treatment-pdf' treatment.pk %}" class="btn btn-kw-outline btn-sm">
+    <i class="bi bi-file-earmark-pdf me-1"></i> Exportar PDF
+  </a>
+  <a href="{% url 'web:session-create' treatment.pk %}" class="btn btn-kw btn-sm">
+    <i class="bi bi-plus-lg me-1"></i> Agregar sesión
+  </a>
+  <a href="{% url 'web:treatment-update' treatment.pk %}" class="btn btn-kw-outline btn-sm">
+    <i class="bi bi-pencil me-1"></i> Editar
+  </a>
+  {% if treatment.status == "activo" %}
+    <form method="post" action="{% url 'web:treatment-finish' treatment.pk %}" class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success btn-sm">
+        <i class="bi bi-check2-circle me-1"></i> Finalizar tratamiento
+      </button>
+    </form>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card kw-card mb-3">
+      <div class="kw-card-body">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <span class="badge badge-soft badge-soft-{{ treatment.status|status_class }}">{{ treatment.get_status_display }}</span>
+          <span class="small text-muted">Creado {{ treatment.created_at|date:"d/m/Y" }}</span>
+        </div>
+        <dl class="small mb-0">
+          <div class="d-flex justify-content-between py-1"><dt>Paciente</dt><dd><a class="kw-link" href="{% url 'web:patient-detail' treatment.patient.pk %}">{{ treatment.patient.full_name }}</a></dd></div>
+          <div class="d-flex justify-content-between py-1"><dt>Inicio</dt><dd>{{ treatment.start_date|date:"d/m/Y"|default:"—" }}</dd></div>
+          <div class="d-flex justify-content-between py-1"><dt>Fin</dt><dd>{{ treatment.end_date|date:"d/m/Y"|default:"—" }}</dd></div>
+          <div class="d-flex justify-content-between py-1"><dt>Frecuencia</dt><dd>{{ treatment.frequency|default:"—" }}</dd></div>
+          <div class="d-flex justify-content-between py-1"><dt>Sesiones</dt><dd>{{ sessions_done }} / {{ treatment.total_sessions }}</dd></div>
+        </dl>
+        <div class="progress progress-kw mt-3">
+          <div class="progress-bar" style="width: {{ sessions_done|percent:treatment.total_sessions }}%"></div>
+        </div>
+        <div class="small text-muted mt-1">{{ treatment.sessions_done }} realizadas · {{ treatment.total_sessions|add:"-0" }} totales</div>
+      </div>
+    </div>
+
+    {% if treatment.description or treatment.notes %}
+      <div class="card kw-card mb-3">
+        <div class="kw-card-body small">
+          {% if treatment.description %}<p class="mb-2">{{ treatment.description }}</p>{% endif %}
+          {% if treatment.notes %}<p class="text-muted mb-0">{{ treatment.notes|linebreaks }}</p>{% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="card kw-card">
+      <div class="kw-card-body">
+        <a href="{% url 'web:treatment-delete' treatment.pk %}" class="btn btn-outline-danger w-100">
+          <i class="bi bi-trash me-1"></i> Eliminar tratamiento
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card kw-card">
+      <div class="kw-card-header"><i class="bi bi-list-check me-2 text-teal"></i>Plan de sesiones</div>
+      <div class="kw-table-wrap">
+        <table class="table kw-table mb-0 align-middle">
+          <thead><tr><th>Nº</th><th>Fecha</th><th>Estado</th><th>Notas</th><th class="text-end">Acciones</th></tr></thead>
+          <tbody>
+            {% for sesion in sessions %}
+              <tr>
+                <td class="fw-bold">{{ sesion.number }}</td>
+                <td>{{ sesion.date|date:"d/m/Y" }}</td>
+                <td><span class="badge badge-soft badge-soft-{{ sesion.status|status_class }}">{{ sesion.get_status_display }}</span></td>
+                <td class="kw-cell-sub text-truncate" style="max-width:220px">{{ sesion.clinical_notes|default:"—" }}</td>
+                <td class="text-end">
+                  <div class="d-inline-flex gap-1">
+                    {% if sesion.status != "realizada" %}
+                      <form method="post" action="{% url 'web:session-complete' sesion.pk %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-icon btn-icon-soft" title="Marcar realizada" data-bs-toggle="tooltip">
+                          <i class="bi bi-check-lg"></i>
+                        </button>
+                      </form>
+                    {% endif %}
+                    <a href="{% url 'web:session-update' sesion.pk %}" class="btn btn-icon btn-icon-soft" title="Editar" data-bs-toggle="tooltip">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                    <form method="post" action="{% url 'web:session-delete' sesion.pk %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-icon btn-icon-soft-danger" title="Eliminar" data-bs-toggle="tooltip">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </div>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="5">
+                  <div class="kw-empty">
+                    <div class="kw-empty-icon"><i class="bi bi-calendar-plus"></i></div>
+                    <p class="mb-1">El tratamiento todavía no tiene sesiones.</p>
+                    <a href="{% url 'web:session-create' treatment.pk %}" class="btn btn-kw btn-sm mt-2">Agregar la primera sesión</a>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

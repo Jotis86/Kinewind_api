@@ -1,0 +1,110 @@
+{% extends "web/base.html" %}
+{% load web_extras %}
+
+{% block title %}Pacientes · Kinewind{% endblock %}
+{% block page_title %}Pacientes{% endblock %}
+{% block subtitle %}Gestión de altas, bajas y modificaciones{% endblock %}
+{% block topbar_actions %}
+  <a href="{% url 'web:patient-create' %}" class="btn btn-kw btn-sm">
+    <i class="bi bi-person-plus me-1"></i> Nuevo paciente
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="card kw-card mb-3">
+  <div class="kw-card-body py-3">
+    <form method="get" class="row g-2 align-items-end" data-auto-filter>
+      <div class="col-md-5">
+        <label class="form-label mb-1">Buscar</label>
+        <div class="input-group">
+          <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+          <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Nombre, apellido o DNI" autofocus>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label mb-1">Estado</label>
+        <select name="active" class="form-select">
+          <option value="">Todos</option>
+          <option value="true" {% if active == "true" %}selected{% endif %}>Activos</option>
+          <option value="false" {% if active == "false" %}selected{% endif %}>De baja</option>
+        </select>
+      </div>
+      <div class="col-md-4 d-flex gap-2">
+        <button type="submit" class="btn btn-kw-outline flex-grow-1">Filtrar</button>
+        <a href="{% url 'web:patient-list' %}" class="btn btn-outline-secondary flex-grow-1">Limpiar</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card kw-card">
+  <div class="kw-table-wrap">
+    <table class="table kw-table mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>Paciente</th>
+          <th>DNI</th>
+          <th>Teléfono</th>
+          <th>Estado</th>
+          <th class="text-end">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for paciente in patients %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <span class="kw-avatar kw-avatar-soft">{{ paciente.first_name|slice:":1" }}{{ paciente.last_name|slice:":1" }}</span>
+                <a class="kw-cell-title" href="{% url 'web:patient-detail' paciente.pk %}">{{ paciente.full_name }}</a>
+              </div>
+            </td>
+            <td class="kw-cell-sub">{{ paciente.dni }}</td>
+            <td class="kw-cell-sub">{{ paciente.phone|default:"—" }}</td>
+            <td>
+              {% if paciente.active %}
+                <span class="badge badge-soft badge-soft-success">Activo</span>
+              {% else %}
+                <span class="badge badge-soft badge-soft-secondary">De baja</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div class="d-inline-flex gap-1">
+                <a href="{% url 'web:patient-update' paciente.pk %}" class="btn btn-icon btn-icon-soft"
+                   title="Editar" data-bs-toggle="tooltip"><i class="bi bi-pencil"></i></a>
+                <a href="{% url 'web:appointment-create' %}?patient={{ paciente.pk }}" class="btn btn-icon btn-icon-soft-blue"
+                   title="Programar cita" data-bs-toggle="tooltip"><i class="bi bi-calendar-plus"></i></a>
+                {% if paciente.active %}
+                  <a href="{% url 'web:patient-delete' paciente.pk %}" class="btn btn-icon btn-icon-soft-danger"
+                     title="Dar de baja" data-bs-toggle="tooltip"><i class="bi bi-person-dash"></i></a>
+                {% else %}
+                  <form method="post" action="{% url 'web:patient-activate' paciente.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-icon btn-icon-soft" title="Reactivar" data-bs-toggle="tooltip">
+                      <i class="bi bi-person-check"></i>
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5">
+              <div class="kw-empty">
+                <div class="kw-empty-icon"><i class="bi bi-people"></i></div>
+                <p class="mb-1">No se encontraron pacientes.</p>
+                <a href="{% url 'web:patient-create' %}" class="btn btn-kw btn-sm mt-2">Dar de alta</a>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if is_paginated %}
+    <div class="kw-card-body pt-3">
+      {% include "web/_pagination.html" %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

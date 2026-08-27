@@ -1,0 +1,20 @@
+{% extends "web/base.html" %}
+
+{% block title %}Sesión · Kinewind{% endblock %}
+{% block page_title %}{% if object %}Editar sesión{% else %}Nueva sesión{% endif %}{% endblock %}
+{% block subtitle %}{{ treatment.patient.full_name }} · {{ treatment.diagnosis }}{% endblock %}
+
+{% block content %}
+<div class="card kw-card kw-form-card mx-auto">
+  <div class="kw-card-body">
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% include "web/_form_fields.html" %}
+      <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-kw"><i class="bi bi-check-lg me-1"></i> Guardar</button>
+        <a href="{% url 'web:treatment-detail' treatment.pk %}" class="btn btn-kw-outline">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

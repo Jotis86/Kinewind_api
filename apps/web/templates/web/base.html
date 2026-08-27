@@ -1,0 +1,116 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Kinewind{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'web/vendor/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'web/vendor/bootstrap-icons.min.css' %}">
+  <link rel="stylesheet" href="{% static 'web/vendor/fonts/plus-jakarta-sans.css' %}">
+  <link rel="stylesheet" href="{% static 'web/css/app.css' %}">
+</head>
+<body>
+{% if user.is_authenticated %}
+  <aside class="offcanvas-lg offcanvas-start kw-sidebar" tabindex="-1" id="kwSidebar">
+    <div class="offcanvas-header">
+      <a href="{% url 'web:dashboard' %}" class="kw-brand">
+        <span class="kw-brand-icon"><i class="bi bi-heart-pulse-fill"></i></span>
+        <span>Kinewind</span>
+      </a>
+      <button type="button" class="btn-close btn-close-white d-lg-none"
+              data-bs-dismiss="offcanvas" data-bs-target="#kwSidebar" aria-label="Cerrar"></button>
+    </div>
+    <div class="offcanvas-body p-0 d-flex flex-column">
+      <ul class="kw-nav">
+        <li class="kw-nav-label">Menú</li>
+        {% url 'web:dashboard' as url_dash %}
+        {% url 'web:patient-list' as url_patients %}
+        {% url 'web:treatment-list' as url_treatments %}
+        {% url 'web:appointment-list' as url_appointments %}
+        {% url 'web:agenda' as url_agenda %}
+        <li>
+          <a href="{{ url_dash }}" class="kw-nav-link {% if request.path == url_dash %}active{% endif %}">
+            <i class="bi bi-grid-1x2-fill"></i> Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_patients }}" class="kw-nav-link {% if 'pacientes' in request.path %}active{% endif %}">
+            <i class="bi bi-people-fill"></i> Pacientes
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_treatments }}" class="kw-nav-link {% if 'tratamientos' in request.path %}active{% endif %}">
+            <i class="bi bi-clipboard2-pulse-fill"></i> Tratamientos
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_appointments }}" class="kw-nav-link {% if 'citas' in request.path and 'agenda' not in request.path %}active{% endif %}">
+            <i class="bi bi-calendar-check-fill"></i> Citas
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_agenda }}" class="kw-nav-link {% if 'agenda' in request.path %}active{% endif %}">
+            <i class="bi bi-calendar-week-fill"></i> Agenda del día
+          </a>
+        </li>
+        <li class="kw-nav-label">Sistema</li>
+        <li>
+          <a href="/api/docs/" target="_blank" rel="noopener" class="kw-nav-link">
+            <i class="bi bi-box-arrow-up-right"></i> Docs API
+          </a>
+        </li>
+      </ul>
+      <div class="mt-auto kw-sidebar-footer">
+        <div class="kw-user">
+          <span class="kw-avatar kw-avatar-teal">{{ user.username|slice:":2"|upper }}</span>
+          <div class="flex-grow-1">
+            <div class="kw-user-name">{{ user.username }}</div>
+            <div class="kw-user-role">Fisioterapeuta</div>
+          </div>
+          <form method="post" action="{% url 'web:logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-icon btn-icon-soft-danger"
+                    title="Cerrar sesión" data-bs-toggle="tooltip">
+              <i class="bi bi-box-arrow-right"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="kw-main">
+    <header class="kw-topbar">
+      <div class="d-flex align-items-center gap-3 px-3 py-2">
+        <button class="btn btn-icon btn-icon-soft d-lg-none" type="button"
+                data-bs-toggle="offcanvas" data-bs-target="#kwSidebar"
+                aria-controls="kwSidebar" title="Menú">
+          <i class="bi bi-list"></i>
+        </button>
+        <div class="flex-grow-1">
+          <h1 class="kw-page-title h5 mb-0">{% block page_title %}Kinewind{% endblock %}</h1>
+          <div class="kw-subtitle d-none d-sm-block">{% block subtitle %}{% endblock %}</div>
+        </div>
+        <div class="d-flex align-items-center gap-2">{% block topbar_actions %}{% endblock %}</div>
+      </div>
+    </header>
+    <main class="kw-content">
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags|default:'info' }} alert-autodismiss d-flex align-items-center gap-2" role="alert">
+            <i class="bi bi-check-circle-fill"></i> {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+{% else %}
+  {% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="{% static 'web/vendor/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'web/js/app.js' %}"></script>
+</body>
+</html>
