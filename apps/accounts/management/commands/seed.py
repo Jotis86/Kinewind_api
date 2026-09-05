@@ -1,25 +1,28 @@
+import os
+
 from django.core.management.base import BaseCommand
 
 from apps.accounts.models import User
 
 
 class Command(BaseCommand):
-    help = "Crea el usuario admin de la clínica."
+    help = "Asegura el usuario admin de la clínica (admin/admin123)."
 
     def handle(self, *args, **options):
         admin, created = User.objects.get_or_create(
             username="admin",
-            defaults={
-                "email": "admin@kinewind.com",
-                "is_staff": True,
-                "is_superuser": True,
-            },
+            defaults={"email": "admin@kinewind.com"},
         )
-        if created:
-            admin.set_password("admin123")
-            admin.save()
-            self.stdout.write(self.style.SUCCESS("Admin creado: admin / admin123"))
-        else:
-            self.stdout.write("El admin ya existía.")
+        password = os.environ.get("ADMIN_PASSWORD", "admin123")
+        admin.email = "admin@kinewind.com"
+        admin.is_active = True
+        admin.is_staff = True
+        admin.is_superuser = True
+        admin.set_password(password)
+        admin.save()
+        action = "creado" if created else "actualizado"
+        self.stdout.write(
+            self.style.SUCCESS(f"Admin {action}: admin / {password}")
+        )
 
         self.stdout.write(self.style.SUCCESS("Seed finalizado."))

@@ -33,7 +33,7 @@ Plataforma para una clínica de fisioterapia: **panel web** (Django Templates) +
    uv run python manage.py migrate
    uv run python manage.py seed
    ```
-   El seed crea únicamente el usuario `admin` / `admin123` (el fisioterapeuta), sin datos de ejemplo.
+   El seed asegura el usuario `admin` / `admin123` (el fisioterapeuta): lo crea si no existe y resetea su contraseña en cada ejecución. No añade datos de ejemplo. La contraseña se puede sobreescribir con la variable de entorno `ADMIN_PASSWORD`.
 
 5. Correr el servidor:
    ```bash

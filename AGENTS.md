@@ -9,7 +9,7 @@ Django 6 + DRF API para clínica de fisioterapia, con panel web server-rendered 
 - Stack completo (web + db): `docker compose up -d --build` — el contenedor web ejecuta `migrate` + `seed` + `collectstatic` al arrancar
 - Dev local: `uv run python manage.py runserver` (sirve el panel en `/` y la API en `/api/`)
 - Migraciones: `uv run python manage.py makemigrations <app>` y `uv run python manage.py migrate`
-- Seed (idempotente, crea `admin`/`admin123`): `uv run python manage.py seed`
+- Seed (idempotente, asegura `admin`/`admin123` — crea si falta y **resetea la contraseña en cada ejecución**; el valor se puede sobreescribir con `ADMIN_PASSWORD`): `uv run python manage.py seed`
 - Tests: `uv run python manage.py test` (crean y destruyen la test DB `test_kinewind` en Postgres real; la BD debe estar arriba)
 - Validar docs OpenAPI: `uv run python manage.py spectacular --validate --file /dev/null`
 
