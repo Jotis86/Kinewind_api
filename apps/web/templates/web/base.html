@@ -29,6 +29,7 @@
         {% url 'web:treatment-list' as url_treatments %}
         {% url 'web:appointment-list' as url_appointments %}
         {% url 'web:agenda' as url_agenda %}
+        {% url 'web:calendar' as url_calendar %}
         <li>
           <a href="{{ url_dash }}" class="kw-nav-link {% if request.path == url_dash %}active{% endif %}">
             <i class="bi bi-grid-1x2-fill"></i> Dashboard
@@ -52,6 +53,11 @@
         <li>
           <a href="{{ url_agenda }}" class="kw-nav-link {% if 'agenda' in request.path %}active{% endif %}">
             <i class="bi bi-calendar-week-fill"></i> Agenda del día
+          </a>
+        </li>
+        <li>
+          <a href="{{ url_calendar }}" class="kw-nav-link {% if 'calendario' in request.path %}active{% endif %}">
+            <i class="bi bi-calendar3"></i> Calendario
           </a>
         </li>
         <li class="kw-nav-label">Sistema</li>

@@ -58,6 +58,11 @@ class DashboardTestCase(WebBaseTestCase):
         self.assertContains(response, "Ana")
         self.assertContains(response, "Lopez")
 
+    def test_dashboard_has_calendar_quick_access(self):
+        response = self.client.get(reverse("web:dashboard"))
+        self.assertContains(response, "Ver calendario")
+        self.assertContains(response, reverse("web:calendar"))
+
 
 class PatientWebTestCase(WebBaseTestCase):
     def test_create_patient(self):
@@ -587,6 +592,152 @@ class AppointmentWebTestCase(WebBaseTestCase):
         response = self.client.get(reverse("web:agenda"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Ana")
+
+
+class CalendarWebTestCase(WebBaseTestCase):
+    def setUp(self):
+        super().setUp()
+        self.patient = Patient.objects.create(
+            first_name="Ana", last_name="Lopez", dni="40111222"
+        )
+
+    def _week_start(self):
+        today = timezone.localdate()
+        return today - timedelta(days=today.weekday())
+
+    def test_requires_login(self):
+        self.client.logout()
+        response = self.client.get(reverse("web:calendar"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login/", response.headers["Location"])
+
+    def test_defaults_to_current_week(self):
+        response = self.client.get(reverse("web:calendar"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Calendario")
+        self.assertContains(
+            response, f'value="{self._week_start():%Y-%m-%d}"'
+        )
+
+    def test_week_appointments_visible(self):
+        day = self._week_start() + timedelta(days=1)
+        Appointment.objects.create(
+            patient=self.patient,
+            start=timezone.make_aware(
+                timezone.datetime.combine(day, timezone.datetime.min.time())
+            )
+            + timedelta(hours=10),
+        )
+        response = self.client.get(reverse("web:calendar"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Ana")
+        self.assertContains(response, "Lopez")
+
+    def test_outside_week_appointments_hidden(self):
+        other = Patient.objects.create(
+            first_name="Luis", last_name="Perez", dni="40222333"
+        )
+        day = self._week_start() + timedelta(days=7)
+        Appointment.objects.create(
+            patient=other,
+            start=timezone.make_aware(
+                timezone.datetime.combine(day, timezone.datetime.min.time())
+            )
+            + timedelta(hours=10),
+        )
+        response = self.client.get(reverse("web:calendar"))
+        self.assertNotContains(response, "Luis")
+
+    def test_cancelled_appointments_hidden(self):
+        day = self._week_start()
+        Appointment.objects.create(
+            patient=self.patient,
+            start=timezone.make_aware(
+                timezone.datetime.combine(day, timezone.datetime.min.time())
+            )
+            + timedelta(hours=10),
+            status=Appointment.Status.CANCELLED,
+        )
+        response = self.client.get(reverse("web:calendar"))
+        self.assertNotContains(response, "Ana")
+
+    def test_week_start_param_navigates(self):
+        prev_week = self._week_start() - timedelta(days=7)
+        response = self.client.get(
+            reverse("web:calendar"), {"week_start": prev_week.isoformat()}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'value="{prev_week:%Y-%m-%d}"')
+        self.assertNotContains(
+            response, f'value="{self._week_start():%Y-%m-%d}"'
+        )
+
+    def test_navigation_links(self):
+        response = self.client.get(reverse("web:calendar"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "chevron-double-left")
+        self.assertContains(response, "chevron-left")
+        self.assertContains(response, "chevron-right")
+        self.assertContains(response, "chevron-double-right")
+        self.assertContains(response, "Hoy")
+
+    def test_event_positioning(self):
+        day = self._week_start()
+        Appointment.objects.create(
+            patient=self.patient,
+            start=timezone.make_aware(
+                timezone.datetime.combine(day, timezone.datetime.min.time())
+            )
+            + timedelta(hours=10),
+            duration=50,
+        )
+        Appointment.objects.create(
+            patient=self.patient,
+            start=timezone.make_aware(
+                timezone.datetime.combine(day, timezone.datetime.min.time())
+            )
+            + timedelta(hours=12, minutes=30),
+            duration=80,
+        )
+        response = self.client.get(reverse("web:calendar"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'style="top: 0px; height: 50px;"')
+        self.assertContains(response, 'style="top: 150px; height: 80px;"')
+
+    def test_clipped_event(self):
+        day = self._week_start()
+        Appointment.objects.create(
+            patient=self.patient,
+            start=timezone.make_aware(
+                timezone.datetime.combine(day, timezone.datetime.min.time())
+            )
+            + timedelta(hours=21, minutes=30),
+            duration=80,
+        )
+        response = self.client.get(reverse("web:calendar"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "cal-clip-bottom")
+        self.assertContains(response, 'style="top: 690px; height: 30px;"')
+
+    def test_invalid_week_start_falls_back(self):
+        response = self.client.get(
+            reverse("web:calendar"), {"week_start": "basura"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, f'value="{self._week_start():%Y-%m-%d}"'
+        )
+
+    def test_week_start_snaps_to_monday(self):
+        wednesday = self._week_start() + timedelta(days=2)
+        response = self.client.get(
+            reverse("web:calendar"), {"week_start": wednesday.isoformat()}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, f'value="{self._week_start():%Y-%m-%d}"'
+        )
+        self.assertNotContains(response, f'value="{wednesday:%Y-%m-%d}"')
 
 
 class DatabaseDumpTestCase(WebBaseTestCase):

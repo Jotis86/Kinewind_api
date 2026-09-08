@@ -1,0 +1,90 @@
+{% extends "web/base.html" %}
+{% load web_extras %}
+
+{% block title %}Calendario · Kinewind{% endblock %}
+{% block page_title %}Calendario{% endblock %}
+{% block subtitle %}{{ week_start|date:"j \d\e F" }} — {{ week_end|date:"j \d\e F \d\e Y" }}{% endblock %}
+{% block topbar_actions %}
+  <a href="{% url 'web:appointment-create' %}" class="btn btn-kw btn-sm">
+    <i class="bi bi-calendar-plus me-1"></i> Nueva cita
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="card kw-card mb-3">
+  <div class="kw-card-body py-3">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <div class="btn-group" role="group" aria-label="Navegación del calendario">
+        <a href="{% url 'web:calendar' %}?week_start={{ prev_month|date:'Y-m-d' }}" class="btn btn-kw-outline btn-sm" title="Mes anterior" data-bs-toggle="tooltip">
+          <i class="bi bi-chevron-double-left"></i>
+        </a>
+        <a href="{% url 'web:calendar' %}?week_start={{ prev_week|date:'Y-m-d' }}" class="btn btn-kw-outline btn-sm" title="Semana anterior" data-bs-toggle="tooltip">
+          <i class="bi bi-chevron-left"></i>
+        </a>
+        <a href="{% url 'web:calendar' %}?week_start={{ next_week|date:'Y-m-d' }}" class="btn btn-kw-outline btn-sm" title="Semana siguiente" data-bs-toggle="tooltip">
+          <i class="bi bi-chevron-right"></i>
+        </a>
+        <a href="{% url 'web:calendar' %}?week_start={{ next_month|date:'Y-m-d' }}" class="btn btn-kw-outline btn-sm" title="Mes siguiente" data-bs-toggle="tooltip">
+          <i class="bi bi-chevron-double-right"></i>
+        </a>
+      </div>
+      <a href="{% url 'web:calendar' %}" class="btn btn-kw btn-sm"><i class="bi bi-calendar-today me-1"></i> Hoy</a>
+      <span class="fw-bold text-capitalize ms-1">{{ week_start|date:"F Y" }}</span>
+      <form method="get" class="ms-auto d-flex align-items-center gap-2">
+        <input type="date" name="week_start" value="{{ week_start|date:'Y-m-d' }}" class="form-control form-control-sm">
+        <button type="submit" class="btn btn-kw-outline btn-sm">Ir a la semana</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="card kw-card">
+  <div class="kw-card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <span><i class="bi bi-calendar-week me-2 text-teal"></i>{{ appointments_count }} cita{{ appointments_count|pluralize }}</span>
+    <span class="d-flex gap-3 align-items-center small kw-cell-sub">
+      <span class="d-inline-flex align-items-center gap-1"><span class="cal-legend cal-legend-warning"></span>Programada</span>
+      <span class="d-inline-flex align-items-center gap-1"><span class="cal-legend cal-legend-primary"></span>Confirmada</span>
+      <span class="d-inline-flex align-items-center gap-1"><span class="cal-legend cal-legend-info"></span>Completada</span>
+    </span>
+  </div>
+  <div class="kw-table-wrap">
+    <div class="cal-week">
+      <div class="cal-head">
+        <div class="cal-head-label"></div>
+        {% for d in days %}
+        <div class="cal-head-day">
+          <span class="cal-head-weekday">{{ d.date|date:"l"|slice:":3" }}</span>
+          <span class="cal-head-date {% if d.is_today %}cal-today{% endif %}">{{ d.date|date:"j" }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="cal-body">
+        <div class="cal-gutter">
+          {% for h in hours %}
+          <div class="cal-hour">{{ h|stringformat:"02d" }}:00</div>
+          {% endfor %}
+        </div>
+        <div class="cal-grid">
+          {% for d in days %}
+          <div class="cal-day {% if d.is_today %}cal-today{% endif %}">
+            {% for a in d.appointments %}
+            <a href="{% url 'web:appointment-update' a.obj.pk %}"
+               class="cal-event cal-event-{{ a.obj.status|status_class }} {% if a.clipped_start %}cal-clip-top{% endif %}{% if a.clipped_end %} cal-clip-bottom{% endif %}"
+               style="top: {{ a.top }}px; height: {{ a.height }}px;"
+               title="{{ a.obj.patient.full_name }} · {{ a.obj.start|date:'H:i' }} · {{ a.obj.duration }} min">
+              <span class="cal-event-time">{{ a.obj.start|date:"H:i" }}</span>
+              <span class="cal-event-patient">{{ a.obj.patient.full_name }}</span>
+              <span class="cal-event-dur">{{ a.obj.duration }} min</span>
+            </a>
+            {% endfor %}
+            {% if now_top is not None and forloop.counter0 == now_day_offset %}
+              <div class="cal-now" style="top: {{ now_top }}px;"></div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

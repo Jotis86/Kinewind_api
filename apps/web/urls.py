@@ -104,5 +104,6 @@ urlpatterns = [
         name="appointment-status",
     ),
     path("agenda/", views.AgendaView.as_view(), name="agenda"),
+    path("calendario/", views.CalendarView.as_view(), name="calendar"),
     path("dump/", views.DatabaseDumpView.as_view(), name="db-dump"),
 ]

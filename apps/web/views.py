@@ -2,6 +2,7 @@ import os
 import shutil
 import subprocess
 from datetime import datetime as dt
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib import messages
@@ -25,6 +26,8 @@ from django.views.generic.detail import DetailView
 from apps.appointments.models import Appointment
 from apps.appointments.services import (
     DURATION_CHOICES,
+    SLOT_END,
+    SLOT_START,
     appointments_overlap,
     slot_times,
 )
@@ -620,4 +623,98 @@ class AgendaView(LoginRequiredMixin, TemplateView):
             .filter(start__date=day)
             .order_by("start")
         )
+        return context
+
+
+class CalendarView(LoginRequiredMixin, TemplateView):
+    """Vista semanal (lunes a domingo) tipo Google Calendar con las citas."""
+
+    template_name = "web/calendar/calendar.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = timezone.localdate()
+
+        week_start = None
+        week_start_str = self.request.GET.get("week_start")
+        if week_start_str:
+            try:
+                week_start = dt.strptime(week_start_str, "%Y-%m-%d").date()
+            except ValueError:
+                week_start = None
+        if week_start is None:
+            week_start = today - timedelta(days=today.weekday())
+        else:
+            week_start = week_start - timedelta(days=week_start.weekday())
+        week_end = week_start + timedelta(days=6)
+
+        appointments = (
+            Appointment.objects.select_related("patient")
+            .filter(start__date__gte=week_start, start__date__lte=week_end)
+            .exclude(status=Appointment.Status.CANCELLED)
+            .order_by("start")
+        )
+
+        grid_start_min = SLOT_START.hour * 60 + SLOT_START.minute
+        grid_end_min = SLOT_END.hour * 60 + SLOT_END.minute
+
+        by_day = {}
+        for appt in appointments:
+            start = timezone.localtime(appt.start)
+            start_min = start.hour * 60 + start.minute
+            end_min = start_min + appt.duration
+            vis_start = max(start_min, grid_start_min)
+            vis_end = min(end_min, grid_end_min)
+            height = vis_end - vis_start
+            if height <= 0:
+                continue
+            by_day.setdefault(start.date(), []).append(
+                {
+                    "obj": appt,
+                    "top": vis_start - grid_start_min,
+                    "height": height,
+                    "clipped_start": start_min < grid_start_min,
+                    "clipped_end": end_min > grid_end_min,
+                }
+            )
+
+        days = []
+        for offset in range(7):
+            day = week_start + timedelta(days=offset)
+            days.append(
+                {
+                    "date": day,
+                    "is_today": day == today,
+                    "appointments": by_day.get(day, []),
+                }
+            )
+
+        context.update(
+            {
+                "week_start": week_start,
+                "week_end": week_end,
+                "days": days,
+                "prev_week": week_start - timedelta(days=7),
+                "next_week": week_start + timedelta(days=7),
+                "prev_month": (week_start.replace(day=1) - timedelta(days=1)).replace(
+                    day=1
+                ),
+                "next_month": (week_start.replace(day=28) + timedelta(days=7)).replace(
+                    day=1
+                ),
+                "hours": range(SLOT_START.hour, SLOT_END.hour),
+                "appointments_count": len(appointments),
+            }
+        )
+
+        if week_start <= today <= week_end:
+            now = timezone.localtime(timezone.now())
+            now_min = now.hour * 60 + now.minute
+            context["now_top"] = max(
+                0, min(now_min, grid_end_min) - grid_start_min
+            )
+            context["now_day_offset"] = (today - week_start).days
+        else:
+            context["now_top"] = None
+            context["now_day_offset"] = None
         return context
