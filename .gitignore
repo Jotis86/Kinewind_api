@@ -16,3 +16,6 @@ wheels/
 db.sqlite3
 staticfiles/
 media/
+
+# Apple files
+.DS_Store
